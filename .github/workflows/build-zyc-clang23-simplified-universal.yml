@@ -110,9 +110,9 @@ jobs:
         sed -i '/^CONFIG_BIG_CPU_MASK=/d' out/.config
         sed -i '/^CONFIG_PRIME_CPU_MASK=/d' out/.config
 
-        echo 'CONFIG_LITTLE_CPU_MASK="0-3"' >> out/.config
-        echo 'CONFIG_BIG_CPU_MASK="4-6"' >> out/.config
-        echo 'CONFIG_PRIME_CPU_MASK="7"' >> out/.config
+        echo 'CONFIG_LITTLE_CPU_MASK=0x0F' >> out/.config
+        echo 'CONFIG_BIG_CPU_MASK=0x70' >> out/.config
+        echo 'CONFIG_PRIME_CPU_MASK=0x80' >> out/.config
 
         grep '^CONFIG_LITTLE_CPU_MASK=' out/.config
         grep '^CONFIG_BIG_CPU_MASK=' out/.config

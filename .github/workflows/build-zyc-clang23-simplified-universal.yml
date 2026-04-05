@@ -95,18 +95,53 @@ jobs:
         max-size: 2G
 
     - name: 开始编译内核
+      shell: bash
       run: |
-        cd $GITHUB_WORKSPACE/kernel_workspace/android-kernel
-        export PATH=$GITHUB_WORKSPACE/kernel_workspace/clang-zyc/bin:$PATH
+        set -e
+        cd "$GITHUB_WORKSPACE/kernel_workspace/android-kernel"
+
+        export PATH="$GITHUB_WORKSPACE/kernel_workspace/clang-zyc/bin:$PATH"
         export KBUILD_BUILD_HOST=17
         export KBUILD_BUILD_USER=HyperPower
-        make -s -j$(nproc --all) O=out ARCH=arm64 ${{ env.KERNEL_CONFIG }}
-        if [ ${{env.LLVM_CONFIG}}=y ]; then
-        make -j$(nproc --all) CC="ccache clang" CXX=clang++ O=out ARCH=arm64 CLANG_TRIPLE="aarch64-linux-gnu-" CROSS_COMPILE="aarch64-linux-gnu-" CROSS_COMPILE_ARM32="arm-linux-gnueabi-" LLVM=1 LLVM_IAS=1
+
+        make O=out ARCH=arm64 "${{ env.KERNEL_CONFIG }}"
+
+        sed -i '/^CONFIG_LITTLE_CPU_MASK=/d' out/.config
+        sed -i '/^CONFIG_BIG_CPU_MASK=/d' out/.config
+        sed -i '/^CONFIG_PRIME_CPU_MASK=/d' out/.config
+
+        echo 'CONFIG_LITTLE_CPU_MASK="0-3"' >> out/.config
+        echo 'CONFIG_BIG_CPU_MASK="4-6"' >> out/.config
+        echo 'CONFIG_PRIME_CPU_MASK="7"' >> out/.config
+
+        grep '^CONFIG_LITTLE_CPU_MASK=' out/.config
+        grep '^CONFIG_BIG_CPU_MASK=' out/.config
+        grep '^CONFIG_PRIME_CPU_MASK=' out/.config
+
+        make O=out ARCH=arm64 olddefconfig
+
+        if [ "${{ env.LLVM_CONFIG }}" = "y" ]; then
+          make -j"$(nproc --all)" \
+            CC="ccache clang" \
+            CXX=clang++ \
+            O=out \
+            ARCH=arm64 \
+            CLANG_TRIPLE="aarch64-linux-gnu-" \
+            CROSS_COMPILE="aarch64-linux-gnu-" \
+            CROSS_COMPILE_ARM32="arm-linux-gnueabi-" \
+            LLVM=1 \
+            LLVM_IAS=1
         else
-        make -j$(nproc --all) CC="ccache clang" CXX=clang++ O=out ARCH=arm64 CLANG_TRIPLE="aarch64-linux-gnu-" CROSS_COMPILE="aarch64-linux-gnu-" CROSS_COMPILE_ARM32="arm-linux-gnueabi-"
+          make -j"$(nproc --all)" \
+            CC="ccache clang" \
+            CXX=clang++ \
+            O=out \
+            ARCH=arm64 \
+            CLANG_TRIPLE="aarch64-linux-gnu-" \
+            CROSS_COMPILE="aarch64-linux-gnu-" \
+            CROSS_COMPILE_ARM32="arm-linux-gnueabi-"
         fi
-                
+
     - name: 准备打包内核
       run: |
         cd $GITHUB_WORKSPACE/kernel_workspace
